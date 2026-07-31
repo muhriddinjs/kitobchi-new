@@ -50,8 +50,28 @@ export default function NewListingPage() {
   }
 
   function handleImagesChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    setImages(files.slice(0, MAX_IMAGES));
+    const picked = Array.from(e.target.files ?? []);
+    // Append to what's already selected (mobile pickers often allow only one
+    // file per pick), skipping duplicates, capped at MAX_IMAGES.
+    setImages((prev) => {
+      const merged = [...prev];
+      for (const file of picked) {
+        const isDuplicate = merged.some(
+          (m) =>
+            m.name === file.name &&
+            m.size === file.size &&
+            m.lastModified === file.lastModified,
+        );
+        if (!isDuplicate) merged.push(file);
+      }
+      return merged.slice(0, MAX_IMAGES);
+    });
+    // Reset so picking the same file again still fires onChange.
+    e.target.value = "";
+  }
+
+  function removeImage(index: number) {
+    setImages((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -282,15 +302,29 @@ export default function NewListingPage() {
             {images.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
                 {images.map((file, i) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={`${file.name}-${i}`}
-                    src={URL.createObjectURL(file)}
-                    alt={file.name}
-                    className="h-16 w-16 rounded-lg border border-border object-cover"
-                  />
+                  <div key={`${file.name}-${i}`} className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={file.name}
+                      className="h-16 w-16 rounded-lg border border-border object-cover"
+                    />
+                    <button
+                      type="button"
+                      aria-label="Rasmni olib tashlash"
+                      onClick={() => removeImage(i)}
+                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-ink text-xs leading-none text-white hover:bg-red-700"
+                    >
+                      ×
+                    </button>
+                  </div>
                 ))}
               </div>
+            )}
+            {images.length >= MAX_IMAGES && (
+              <p className="mt-1 text-xs text-amber-700">
+                Koʻpi bilan {MAX_IMAGES} ta rasm yuklash mumkin.
+              </p>
             )}
           </div>
 
