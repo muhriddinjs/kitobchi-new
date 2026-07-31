@@ -32,6 +32,27 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// Multipart upload — lets the browser set the Content-Type boundary itself,
+// so it must NOT go through apiFetch (which forces application/json).
+async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new ApiError(
+      res.status,
+      body?.error?.code ?? "UNKNOWN_ERROR",
+      body?.error?.message ?? res.statusText,
+    );
+  }
+
+  return res.json() as Promise<T>;
+}
+
 function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("kitobchi_access_token");
@@ -42,4 +63,4 @@ function authHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export { apiFetch, API_BASE_URL, getAccessToken, authHeaders };
+export { apiFetch, apiUpload, API_BASE_URL, getAccessToken, authHeaders };

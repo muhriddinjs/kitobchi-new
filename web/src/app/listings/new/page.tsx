@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { apiFetch, authHeaders } from "@/lib/api";
-import type { Book } from "@/lib/types";
+import { apiFetch, apiUpload, authHeaders } from "@/lib/api";
+import type { Book, Listing } from "@/lib/types";
 
 type Step = "isbn" | "details";
+
+const MAX_IMAGES = 6;
 
 export default function NewListingPage() {
   const [step, setStep] = useState<Step>("isbn");
@@ -12,15 +14,19 @@ export default function NewListingPage() {
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
   const [book, setBook] = useState<Partial<Book>>({});
+  // Kept as raw text so spaces survive typing; parsed into an array on submit.
+  const [authorsInput, setAuthorsInput] = useState("");
 
   const [type, setType] = useState<"SALE" | "DONATION">("SALE");
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState("GOOD");
   const [city, setCity] = useState("Toshkent");
   const [description, setDescription] = useState("");
+  const [images, setImages] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [imageWarning, setImageWarning] = useState<string | null>(null);
 
   async function handleIsbnLookup() {
     setLookingUp(true);
@@ -30,27 +36,41 @@ export default function NewListingPage() {
         `/books/lookup?isbn=${encodeURIComponent(isbn)}`,
       );
       setBook(found);
+      setAuthorsInput(found.authors?.join(", ") ?? "");
     } catch {
       setLookupError(
         "Kitob avtomatik topilmadi. Maʼlumotlarni qoʻlda kiriting.",
       );
       setBook({ isbn, title: "", authors: [] });
+      setAuthorsInput("");
     } finally {
       setLookingUp(false);
       setStep("details");
     }
   }
 
+  function handleImagesChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    setImages(files.slice(0, MAX_IMAGES));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setSubmitError(null);
+    setImageWarning(null);
+
+    const authors = authorsInput
+      .split(",")
+      .map((a) => a.trim())
+      .filter(Boolean);
+
     try {
-      await apiFetch("/listings", {
+      const listing = await apiFetch<Listing>("/listings", {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
-          book,
+          book: { ...book, authors },
           type,
           price: type === "DONATION" ? null : Number(price) || null,
           condition,
@@ -58,6 +78,19 @@ export default function NewListingPage() {
           description,
         }),
       });
+
+      if (images.length > 0) {
+        try {
+          const formData = new FormData();
+          for (const file of images) formData.append("images", file);
+          await apiUpload(`/listings/${listing.id}/images`, formData);
+        } catch {
+          setImageWarning(
+            "Eʼlon joylandi, lekin rasmlarni yuklab boʻlmadi. Keyinroq qayta urinib koʻring.",
+          );
+        }
+      }
+
       setSubmitted(true);
     } catch {
       setSubmitError(
@@ -73,8 +106,11 @@ export default function NewListingPage() {
       <div className="mx-auto max-w-xl px-4 py-16 text-center sm:px-6">
         <h1 className="font-serif text-2xl text-ink">Eʼlon joylandi</h1>
         <p className="mt-2 text-sm text-ink-soft">
-          Eʼloningiz moderatsiyadan oʻtgach koʻrinadi.
+          Eʼloningiz tez orada bosh sahifada koʻrinadi.
         </p>
+        {imageWarning && (
+          <p className="mt-2 text-sm text-amber-700">{imageWarning}</p>
+        )}
       </div>
     );
   }
@@ -116,6 +152,7 @@ export default function NewListingPage() {
             type="button"
             onClick={() => {
               setBook({ isbn: "", title: "", authors: [] });
+              setAuthorsInput("");
               setStep("details");
             }}
             className="mt-3 text-xs text-ink-soft underline hover:text-ink"
@@ -149,19 +186,14 @@ export default function NewListingPage() {
             </label>
             <input
               type="text"
-              value={book.authors?.join(", ") ?? ""}
-              onChange={(e) =>
-                setBook({
-                  ...book,
-                  authors: e.target.value
-                    .split(",")
-                    .map((a) => a.trim())
-                    .filter(Boolean),
-                })
-              }
-              placeholder="Vergul bilan ajrating"
+              value={authorsInput}
+              onChange={(e) => setAuthorsInput(e.target.value)}
+              placeholder="Masalan: Fyodor Dostoyevskiy, Lev Tolstoy"
               className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
             />
+            <p className="mt-1 text-xs text-ink-soft">
+              Bir nechta muallifni vergul bilan ajrating.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -236,9 +268,31 @@ export default function NewListingPage() {
             />
           </div>
 
-          <p className="text-xs text-ink-soft">
-            Rasm yuklash keyingi bosqichda ushbu forma orqali qoʻshiladi.
-          </p>
+          <div>
+            <label className="text-xs font-medium text-ink-soft">
+              Rasmlar (ixtiyoriy, {MAX_IMAGES} tagacha)
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImagesChange}
+              className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm file:mr-3 file:rounded-full file:border-0 file:bg-brand-light file:px-3 file:py-1 file:text-xs file:font-medium file:text-brand-dark"
+            />
+            {images.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {images.map((file, i) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={`${file.name}-${i}`}
+                    src={URL.createObjectURL(file)}
+                    alt={file.name}
+                    className="h-16 w-16 rounded-lg border border-border object-cover"
+                  />
+                ))}
+              </div>
+            )}
+          </div>
 
           {submitError && (
             <p className="text-xs text-red-700">{submitError}</p>
