@@ -69,3 +69,36 @@ export interface Paginated<T> {
   limit: number;
   total: number;
 }
+
+export interface ChatParticipant {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+}
+
+export interface Conversation {
+  id: string;
+  listing: {
+    id: string;
+    book: { id: string; title: string; coverUrl: string | null };
+    images: ListingImage[];
+  };
+  buyer: ChatParticipant;
+  seller: ChatParticipant;
+  /** Last message only (list preview). */
+  messages: {
+    id: string;
+    text: string;
+    senderId: string;
+    createdAt: string;
+  }[];
+  createdAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  senderId: string;
+  sender: { id: string; name: string };
+  createdAt: string;
+}

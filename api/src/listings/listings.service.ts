@@ -12,7 +12,7 @@ import { UpdateListingDto } from './dto/update-listing.dto';
 import { QueryListingsDto } from './dto/query-listings.dto';
 import { MarkSoldDto } from './dto/mark-sold.dto';
 
-const SELLER_SELECT = {
+export const SELLER_SELECT = {
   id: true,
   name: true,
   // Classifieds model: the deal happens offline, so the buyer needs a direct
@@ -24,7 +24,7 @@ const SELLER_SELECT = {
   telegramUsername: true,
 };
 
-const LISTING_INCLUDE = {
+export const LISTING_INCLUDE = {
   book: true,
   seller: { select: SELLER_SELECT },
   images: { orderBy: { sortOrder: 'asc' as const } },

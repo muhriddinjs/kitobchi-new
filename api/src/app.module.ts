@@ -9,6 +9,8 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { ListingsModule } from './listings/listings.module';
+import { FavoritesModule } from './favorites/favorites.module';
+import { ChatModule } from './chat/chat.module';
 import { ReportsModule } from './reports/reports.module';
 import { AdminModule } from './admin/admin.module';
 
@@ -28,6 +30,8 @@ import { AdminModule } from './admin/admin.module';
     UsersModule,
     CatalogModule,
     ListingsModule,
+    FavoritesModule,
+    ChatModule,
     ReportsModule,
     AdminModule,
   ],

@@ -5,6 +5,7 @@ import ConditionBadge from "@/components/condition-badge";
 import StarRating from "@/components/star-rating";
 import ReportListingButton from "@/components/report-listing-button";
 import ContactSeller from "@/components/contact-seller";
+import FavoriteButton from "@/components/favorite-button";
 import ListingGallery from "@/components/listing-gallery";
 import { formatPrice } from "@/lib/format";
 import { getListing } from "@/lib/queries";
@@ -67,11 +68,13 @@ export default async function ListingDetailPage({
             </div>
             <p className="mt-1 text-sm text-ink-soft">{listing.city}</p>
 
-            <div className="mt-5">
+            <div className="mt-5 flex flex-col gap-2">
               <ContactSeller
+                listingId={listing.id}
                 phone={seller.phone}
                 telegramUsername={seller.telegramUsername}
               />
+              <FavoriteButton listingId={listing.id} />
             </div>
           </div>
 
