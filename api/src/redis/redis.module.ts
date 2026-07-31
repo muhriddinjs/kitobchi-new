@@ -23,6 +23,7 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
           connectTimeout: 10_000,
           commandTimeout: 8_000,
           maxRetriesPerRequest: 2,
+          retryStrategy: (attempt) => Math.min(attempt * 1_000, 10_000),
         });
         client.on('error', (err) =>
           logger.error(`Connection error: ${err.message}`),
