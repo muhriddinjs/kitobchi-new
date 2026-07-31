@@ -1,6 +1,20 @@
+import Link from "next/link";
 import ListingCard from "@/components/listing-card";
 import EmptyState from "@/components/empty-state";
 import { getCategories, getListings } from "@/lib/queries";
+
+function pageHref(
+  params: Record<string, string | undefined>,
+  page: number,
+): string {
+  const next = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value && key !== "page") next.set(key, value);
+  }
+  if (page > 1) next.set("page", String(page));
+  const qs = next.toString();
+  return qs ? `/search?${qs}` : "/search";
+}
 
 const CONDITIONS = [
   { value: "NEW", label: "Yangidek" },
@@ -28,6 +42,9 @@ export default async function SearchPage({
       page: params.page,
     }),
   ]);
+
+  const currentPage = results.page;
+  const totalPages = Math.max(1, Math.ceil(results.total / results.limit));
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -133,11 +150,50 @@ export default async function SearchPage({
 
         <div>
           {results.items.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
-              {results.items.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
-              ))}
-            </div>
+            <>
+              <p className="text-sm text-ink-soft">
+                Jami {results.total} ta eʼlon topildi
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+                {results.items.map((listing) => (
+                  <ListingCard key={listing.id} listing={listing} />
+                ))}
+              </div>
+
+              {totalPages > 1 && (
+                <nav className="mt-8 flex items-center justify-center gap-3 text-sm">
+                  {currentPage > 1 ? (
+                    <Link
+                      href={pageHref(params, currentPage - 1)}
+                      className="rounded-full border border-border px-4 py-2 text-ink hover:border-brand hover:text-brand-dark"
+                    >
+                      ← Oldingi
+                    </Link>
+                  ) : (
+                    <span className="rounded-full border border-border px-4 py-2 text-ink-soft opacity-50">
+                      ← Oldingi
+                    </span>
+                  )}
+
+                  <span className="text-ink-soft">
+                    {currentPage} / {totalPages}
+                  </span>
+
+                  {currentPage < totalPages ? (
+                    <Link
+                      href={pageHref(params, currentPage + 1)}
+                      className="rounded-full border border-border px-4 py-2 text-ink hover:border-brand hover:text-brand-dark"
+                    >
+                      Keyingi →
+                    </Link>
+                  ) : (
+                    <span className="rounded-full border border-border px-4 py-2 text-ink-soft opacity-50">
+                      Keyingi →
+                    </span>
+                  )}
+                </nav>
+              )}
+            </>
           ) : (
             <EmptyState
               title="Hech narsa topilmadi"

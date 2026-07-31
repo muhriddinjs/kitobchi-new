@@ -25,6 +25,7 @@ export interface Book {
 export interface SellerSummary {
   id: string;
   name: string;
+  phone: string;
   avatarUrl: string | null;
   ratingAvg: number;
   ratingCount: number;
@@ -54,6 +55,7 @@ export interface Listing {
 export interface SellerProfile {
   id: string;
   name: string;
+  phone: string;
   avatarUrl: string | null;
   telegramUsername: string | null;
   ratingAvg: number;

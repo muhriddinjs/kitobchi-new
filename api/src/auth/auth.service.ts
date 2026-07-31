@@ -58,10 +58,25 @@ export class AuthService {
     const stored = await this.redis.get(this.otpKey(phone));
 
     if (!stored || stored !== code) {
+      // Cap wrong guesses so a 6-digit code can't be brute-forced within
+      // its TTL; after the limit the code itself is invalidated.
+      if (stored) {
+        const attempts = await this.redis.incr(this.attemptsKey(phone));
+        if (attempts === 1) {
+          const ttl = Number(this.config.get('OTP_TTL_SECONDS', '120'));
+          await this.redis.expire(this.attemptsKey(phone), ttl);
+        }
+        if (attempts >= 5) {
+          await this.redis.del(this.otpKey(phone), this.attemptsKey(phone));
+          throw new UnauthorizedException(
+            'Juda koʻp urinish. Yangi kod soʻrang',
+          );
+        }
+      }
       throw new UnauthorizedException('Kod notoʻgʻri yoki muddati oʻtgan');
     }
 
-    await this.redis.del(this.otpKey(phone));
+    await this.redis.del(this.otpKey(phone), this.attemptsKey(phone));
 
     const user = await this.prisma.user.upsert({
       where: { phone },
@@ -130,6 +145,10 @@ export class AuthService {
 
   private otpKey(phone: string): string {
     return `otp:${phone}`;
+  }
+
+  private attemptsKey(phone: string): string {
+    return `otp-attempts:${phone}`;
   }
 
   private cooldownKey(phone: string): string {

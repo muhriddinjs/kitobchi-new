@@ -43,6 +43,7 @@ export class BooksService {
           select: {
             id: true,
             name: true,
+            phone: true,
             avatarUrl: true,
             ratingAvg: true,
             ratingCount: true,

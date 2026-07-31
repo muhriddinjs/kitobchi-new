@@ -5,6 +5,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 const PUBLIC_PROFILE_SELECT = {
   id: true,
   name: true,
+  phone: true,
   avatarUrl: true,
   telegramUsername: true,
   ratingAvg: true,

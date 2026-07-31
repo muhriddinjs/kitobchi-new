@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiFetch, authHeaders, getAccessToken } from "@/lib/api";
+import { apiFetch, authHeaders, clearTokens, getAccessToken } from "@/lib/api";
 
 interface Me {
   id: string;
@@ -49,8 +49,7 @@ export default function HeaderAuth() {
   }, []);
 
   function logout() {
-    localStorage.removeItem("kitobchi_access_token");
-    localStorage.removeItem("kitobchi_refresh_token");
+    clearTokens();
     setMe(null);
     setOpen(false);
     router.push("/");
@@ -91,6 +90,20 @@ export default function HeaderAuth() {
             className="block rounded-md px-3 py-2 text-sm text-ink hover:bg-paper-muted"
           >
             Profil
+          </Link>
+          <Link
+            href="/my-listings"
+            onClick={() => setOpen(false)}
+            className="block rounded-md px-3 py-2 text-sm text-ink hover:bg-paper-muted"
+          >
+            Eʼlonlarim
+          </Link>
+          <Link
+            href="/settings"
+            onClick={() => setOpen(false)}
+            className="block rounded-md px-3 py-2 text-sm text-ink hover:bg-paper-muted"
+          >
+            Sozlamalar
           </Link>
           {me.role === "ADMIN" && (
             <Link

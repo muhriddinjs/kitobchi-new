@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -22,6 +23,9 @@ import { UpdateListingDto } from './dto/update-listing.dto';
 import { QueryListingsDto } from './dto/query-listings.dto';
 import { MarkSoldDto } from './dto/mark-sold.dto';
 import { CreateReportDto } from '../reports/dto/create-report.dto';
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB per image
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 @Controller({ path: 'listings', version: '1' })
 export class ListingsController {
@@ -77,7 +81,22 @@ export class ListingsController {
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/images')
-  @UseInterceptors(FilesInterceptor('images', 6))
+  @UseInterceptors(
+    FilesInterceptor('images', 6, {
+      limits: { fileSize: MAX_IMAGE_BYTES },
+      fileFilter: (_req, file, cb) => {
+        if (!ALLOWED_IMAGE_TYPES.has(file.mimetype)) {
+          return cb(
+            new BadRequestException(
+              'Faqat JPEG, PNG yoki WebP rasm yuklash mumkin',
+            ),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
   addImages(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,

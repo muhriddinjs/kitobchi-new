@@ -15,6 +15,9 @@ import { MarkSoldDto } from './dto/mark-sold.dto';
 const SELLER_SELECT = {
   id: true,
   name: true,
+  // Classifieds model: the deal happens offline, so the buyer needs a direct
+  // contact route — phone is public by design (like any classifieds site).
+  phone: true,
   avatarUrl: true,
   ratingAvg: true,
   ratingCount: true,
@@ -74,9 +77,19 @@ export class ListingsService {
     const bookWhere: Prisma.BookWhereInput = {};
     if (query.category) bookWhere.categoryId = query.category;
     if (query.q) {
+      // Prisma can't do case-insensitive substring matching inside a string
+      // array, so authors are matched with raw SQL (unnest + ILIKE) and the
+      // resulting book ids merged into the filter alongside the title match.
+      const pattern = `%${query.q}%`;
+      const authorMatches = await this.prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM books
+        WHERE EXISTS (
+          SELECT 1 FROM unnest(authors) AS author WHERE author ILIKE ${pattern}
+        )
+      `;
       bookWhere.OR = [
         { title: { contains: query.q, mode: 'insensitive' } },
-        { authors: { hasSome: [query.q] } },
+        { id: { in: authorMatches.map((b) => b.id) } },
       ];
     }
     if (Object.keys(bookWhere).length > 0) where.book = bookWhere;

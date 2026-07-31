@@ -1,13 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { ApiError, apiFetch, storeTokens } from "@/lib/api";
 
 type Step = "phone" | "otp";
 
+// Accept "+998 90 123-45-67", "90 123 45 67" etc. and send the API the
+// canonical +998XXXXXXXXX form it validates against.
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("998")) return `+${digits}`;
+  return `+998${digits}`;
+}
+
+function errorMessage(err: unknown, fallback: string): string {
+  return err instanceof ApiError && err.message ? err.message : fallback;
+}
+
 export default function LoginPage() {
-  const router = useRouter();
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("+998");
   const [code, setCode] = useState("");
@@ -21,11 +31,13 @@ export default function LoginPage() {
     try {
       await apiFetch("/auth/request-otp", {
         method: "POST",
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone: normalizePhone(phone) }),
       });
       setStep("otp");
-    } catch {
-      setError("SMS yuborilmadi. Telefon raqamni tekshiring.");
+    } catch (err) {
+      setError(
+        errorMessage(err, "SMS yuborilmadi. Telefon raqamni tekshiring."),
+      );
     } finally {
       setLoading(false);
     }
@@ -40,15 +52,14 @@ export default function LoginPage() {
         "/auth/verify-otp",
         {
           method: "POST",
-          body: JSON.stringify({ phone, code }),
+          body: JSON.stringify({ phone: normalizePhone(phone), code }),
         },
       );
-      localStorage.setItem("kitobchi_access_token", res.accessToken);
-      localStorage.setItem("kitobchi_refresh_token", res.refreshToken);
-      router.push("/");
-    } catch {
-      setError("Kod notoʻgʻri yoki muddati oʻtgan.");
-    } finally {
+      storeTokens(res.accessToken, res.refreshToken);
+      // Full reload so the header picks up the logged-in state.
+      window.location.assign("/");
+    } catch (err) {
+      setError(errorMessage(err, "Kod notoʻgʻri yoki muddati oʻtgan."));
       setLoading(false);
     }
   }
@@ -87,12 +98,13 @@ export default function LoginPage() {
       {step === "otp" && (
         <form onSubmit={verifyOtp} className="mt-6 flex flex-col gap-3">
           <label className="text-xs font-medium text-ink-soft">
-            {phone} raqamiga yuborilgan kod
+            {normalizePhone(phone)} raqamiga yuborilgan kod
           </label>
           <input
             required
             type="text"
             inputMode="numeric"
+            autoComplete="one-time-code"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="123456"
@@ -108,7 +120,11 @@ export default function LoginPage() {
           </button>
           <button
             type="button"
-            onClick={() => setStep("phone")}
+            onClick={() => {
+              setStep("phone");
+              setCode("");
+              setError(null);
+            }}
             className="text-xs text-ink-soft underline hover:text-ink"
           >
             Raqamni oʻzgartirish

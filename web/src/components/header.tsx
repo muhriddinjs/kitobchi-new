@@ -31,12 +31,6 @@ export default function Header() {
           >
             Qidirish
           </Link>
-          <Link href="/favorites" className="hidden text-ink-soft hover:text-ink sm:inline">
-            Sevimlilar
-          </Link>
-          <Link href="/messages" className="hidden text-ink-soft hover:text-ink sm:inline">
-            Xabarlar
-          </Link>
           <Link
             href="/listings/new"
             className="rounded-full bg-brand px-4 py-2 font-medium text-white hover:bg-brand-dark"

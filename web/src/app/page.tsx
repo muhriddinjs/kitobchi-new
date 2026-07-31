@@ -41,7 +41,7 @@ export default async function HomePage() {
               </button>
             </form>
           </div>
-          <div className="hidden md:block">
+          <div className="mt-2 md:mt-0">
             <HeroCarousel />
           </div>
         </div>
