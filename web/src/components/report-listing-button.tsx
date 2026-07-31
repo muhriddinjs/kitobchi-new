@@ -17,7 +17,10 @@ export default function ReportListingButton({
   const [hasToken, setHasToken] = useState<boolean | null>(null);
 
   useEffect(() => {
-    setHasToken(Boolean(getAccessToken()));
+    function check() {
+      setHasToken(Boolean(getAccessToken()));
+    }
+    check();
   }, []);
 
   if (hasToken === null) return null;
