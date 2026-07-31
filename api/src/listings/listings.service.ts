@@ -59,8 +59,12 @@ export class ListingsService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
 
+    // Public browse/search hides both HIDDEN and SOLD listings. A seller's
+    // own profile (sellerId filter) still shows sold ones as track record.
     const where: Prisma.ListingWhereInput = {
-      status: { not: 'HIDDEN' },
+      status: query.sellerId
+        ? { not: 'HIDDEN' }
+        : { notIn: ['HIDDEN', 'SOLD'] },
     };
 
     if (query.sellerId) where.sellerId = query.sellerId;

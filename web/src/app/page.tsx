@@ -54,7 +54,7 @@ export default async function HomePage() {
             {categories.map((category) => (
               <Link
                 key={category.id}
-                href={`/search?category=${category.id}`}
+                href={`/search?category=${encodeURIComponent(category.id)}`}
                 className="rounded-full border border-border bg-white px-4 py-2 text-sm text-ink-soft hover:border-brand hover:text-brand-dark"
               >
                 {category.nameUz}

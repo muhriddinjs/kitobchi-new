@@ -36,7 +36,7 @@ export class BooksService {
     if (!book) throw new NotFoundException('Kitob topilmadi');
 
     const listings = await this.prisma.listing.findMany({
-      where: { bookId: id, status: { not: 'HIDDEN' } },
+      where: { bookId: id, status: { notIn: ['HIDDEN', 'SOLD'] } },
       include: {
         book: true,
         seller: {
@@ -142,7 +142,16 @@ export class BooksService {
       const existing = await this.prisma.book.findUnique({
         where: { isbn },
       });
-      if (existing) return existing;
+      if (existing) {
+        // Backfill a category if the shared book record didn't have one yet.
+        if (!existing.categoryId && dto.categoryId) {
+          return this.prisma.book.update({
+            where: { id: existing.id },
+            data: { categoryId: dto.categoryId },
+          });
+        }
+        return existing;
+      }
     }
 
     return this.prisma.book.create({

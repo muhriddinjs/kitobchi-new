@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { apiFetch, apiUpload, authHeaders } from "@/lib/api";
-import type { Book, Listing } from "@/lib/types";
+import type { Book, Category, Listing } from "@/lib/types";
 
 type Step = "isbn" | "details";
 
@@ -16,6 +16,8 @@ export default function NewListingPage() {
   const [book, setBook] = useState<Partial<Book>>({});
   // Kept as raw text so spaces survive typing; parsed into an array on submit.
   const [authorsInput, setAuthorsInput] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryId, setCategoryId] = useState("");
 
   const [type, setType] = useState<"SALE" | "DONATION">("SALE");
   const [price, setPrice] = useState("");
@@ -28,6 +30,18 @@ export default function NewListingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [imageWarning, setImageWarning] = useState<string | null>(null);
 
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const list = await apiFetch<Category[]>("/categories");
+        setCategories(list);
+      } catch {
+        // Non-blocking: the category field just stays empty if this fails.
+      }
+    }
+    void loadCategories();
+  }, []);
+
   async function handleIsbnLookup() {
     setLookingUp(true);
     setLookupError(null);
@@ -37,6 +51,7 @@ export default function NewListingPage() {
       );
       setBook(found);
       setAuthorsInput(found.authors?.join(", ") ?? "");
+      if (found.categoryId) setCategoryId(found.categoryId);
     } catch {
       setLookupError(
         "Kitob avtomatik topilmadi. Maʼlumotlarni qoʻlda kiriting.",
@@ -90,7 +105,7 @@ export default function NewListingPage() {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
-          book: { ...book, authors },
+          book: { ...book, authors, categoryId: categoryId || undefined },
           type,
           price: type === "DONATION" ? null : Number(price) || null,
           condition,
@@ -214,6 +229,24 @@ export default function NewListingPage() {
             <p className="mt-1 text-xs text-ink-soft">
               Bir nechta muallifni vergul bilan ajrating.
             </p>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-ink-soft">
+              Kategoriya
+            </label>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+            >
+              <option value="">Tanlanmagan</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nameUz}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
