@@ -1,5 +1,6 @@
 import Link from "next/link";
 import HeaderAuth from "@/components/header-auth";
+import MessagesLink from "@/components/messages-link";
 
 export default function Header() {
   return (
@@ -37,12 +38,7 @@ export default function Header() {
           >
             Sevimlilar
           </Link>
-          <Link
-            href="/messages"
-            className="hidden text-ink-soft hover:text-ink sm:inline"
-          >
-            Xabarlar
-          </Link>
+          <MessagesLink />
           <Link
             href="/listings/new"
             className="rounded-full bg-brand px-4 py-2 font-medium text-white hover:bg-brand-dark"

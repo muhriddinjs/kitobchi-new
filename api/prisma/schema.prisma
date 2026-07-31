@@ -157,8 +157,10 @@ model Message {
   senderId       String
   sender         User         @relation(fields: [senderId], references: [id])
   text           String
+  readAt         DateTime?
   createdAt      DateTime     @default(now())
 
+  @@index([conversationId, readAt])
   @@map("messages")
 }
 

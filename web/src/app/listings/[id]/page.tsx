@@ -7,6 +7,7 @@ import ReportListingButton from "@/components/report-listing-button";
 import ContactSeller from "@/components/contact-seller";
 import FavoriteButton from "@/components/favorite-button";
 import ListingGallery from "@/components/listing-gallery";
+import ReviewForm from "@/components/review-form";
 import { formatPrice } from "@/lib/format";
 import { getListing } from "@/lib/queries";
 
@@ -101,6 +102,10 @@ export default async function ListingDetailPage({
               />
             </div>
           </Link>
+
+          {listing.status === "SOLD" && (
+            <ReviewForm listingId={listing.id} />
+          )}
 
           <ReportListingButton listingId={listing.id} />
         </aside>

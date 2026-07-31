@@ -92,7 +92,18 @@ export interface Conversation {
     senderId: string;
     createdAt: string;
   }[];
+  /** Present in the conversation list response. */
+  unreadCount?: number;
   createdAt: string;
+}
+
+export interface Review {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  reviewer: { id: string; name: string; avatarUrl: string | null };
+  listing: { id: string; book: { title: string } };
 }
 
 export interface ChatMessage {

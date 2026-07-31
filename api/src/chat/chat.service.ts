@@ -61,12 +61,45 @@ export class ChatService {
       include: CONVERSATION_INCLUDE,
     });
 
-    // Most recently active first (last message, else conversation creation).
-    return conversations.sort((a, b) => {
-      const aTime = a.messages[0]?.createdAt ?? a.createdAt;
-      const bTime = b.messages[0]?.createdAt ?? b.createdAt;
-      return bTime.getTime() - aTime.getTime();
+    // Unread = messages sent by the other side that I haven't opened yet.
+    const unreadGroups = await this.prisma.message.groupBy({
+      by: ['conversationId'],
+      where: {
+        conversationId: { in: conversations.map((c) => c.id) },
+        senderId: { not: userId },
+        readAt: null,
+      },
+      _count: { _all: true },
     });
+    const unreadByConversation = new Map(
+      unreadGroups.map((g) => [g.conversationId, g._count._all]),
+    );
+
+    // Most recently active first (last message, else conversation creation).
+    return conversations
+      .map((conversation) => ({
+        ...conversation,
+        unreadCount: unreadByConversation.get(conversation.id) ?? 0,
+      }))
+      .sort((a, b) => {
+        const aTime = a.messages[0]?.createdAt ?? a.createdAt;
+        const bTime = b.messages[0]?.createdAt ?? b.createdAt;
+        return bTime.getTime() - aTime.getTime();
+      });
+  }
+
+  // How many conversations have at least one unread message — used for the
+  // header badge.
+  async unreadCount(userId: string) {
+    const groups = await this.prisma.message.groupBy({
+      by: ['conversationId'],
+      where: {
+        conversation: { OR: [{ buyerId: userId }, { sellerId: userId }] },
+        senderId: { not: userId },
+        readAt: null,
+      },
+    });
+    return { conversations: groups.length };
   }
 
   async getOne(userId: string, id: string) {
@@ -81,6 +114,13 @@ export class ChatService {
 
   async messages(userId: string, id: string) {
     await this.getOne(userId, id);
+
+    // Opening the thread marks the other side's messages as read.
+    await this.prisma.message.updateMany({
+      where: { conversationId: id, senderId: { not: userId }, readAt: null },
+      data: { readAt: new Date() },
+    });
+
     return this.prisma.message.findMany({
       where: { conversationId: id },
       orderBy: { createdAt: 'asc' },

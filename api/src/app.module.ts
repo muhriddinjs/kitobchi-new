@@ -11,6 +11,7 @@ import { CatalogModule } from './catalog/catalog.module';
 import { ListingsModule } from './listings/listings.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { ChatModule } from './chat/chat.module';
+import { ReviewsModule } from './reviews/reviews.module';
 import { ReportsModule } from './reports/reports.module';
 import { AdminModule } from './admin/admin.module';
 
@@ -32,6 +33,7 @@ import { AdminModule } from './admin/admin.module';
     ListingsModule,
     FavoritesModule,
     ChatModule,
+    ReviewsModule,
     ReportsModule,
     AdminModule,
   ],

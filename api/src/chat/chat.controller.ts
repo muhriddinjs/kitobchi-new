@@ -24,6 +24,12 @@ export class ChatController {
     return this.chatService.myConversations(user.id);
   }
 
+  // NOTE: must stay above the ':id' route or 'unread-count' is matched as an id.
+  @Get('unread-count')
+  unreadCount(@CurrentUser() user: AuthenticatedUser) {
+    return this.chatService.unreadCount(user.id);
+  }
+
   @Get(':id')
   getOne(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.chatService.getOne(user.id, id);

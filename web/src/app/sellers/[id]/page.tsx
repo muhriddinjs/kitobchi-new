@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import ListingCard from "@/components/listing-card";
 import EmptyState from "@/components/empty-state";
 import StarRating from "@/components/star-rating";
-import { getListings, getSeller } from "@/lib/queries";
+import { getListings, getSeller, getSellerReviews } from "@/lib/queries";
+import { formatMessageTime } from "@/lib/format";
 
 export default async function SellerProfilePage({
   params,
@@ -14,7 +15,10 @@ export default async function SellerProfilePage({
   const seller = await getSeller(id);
   if (!seller) notFound();
 
-  const listings = await getListings({ sellerId: id, limit: "24" });
+  const [listings, reviews] = await Promise.all([
+    getListings({ sellerId: id, limit: "24" }),
+    getSellerReviews(id),
+  ]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -48,6 +52,50 @@ export default async function SellerProfilePage({
           <div className="mt-4">
             <EmptyState title="Hozircha eʼlonlar yoʻq" />
           </div>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-serif text-xl text-ink">
+          Sharhlar{reviews.length > 0 && ` (${reviews.length})`}
+        </h2>
+
+        {reviews.length > 0 ? (
+          <ul className="mt-4 flex max-w-2xl flex-col gap-3">
+            {reviews.map((review) => (
+              <li
+                key={review.id}
+                className="rounded-xl border border-border bg-white p-4"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium text-ink">
+                    {review.reviewer.name}
+                  </p>
+                  <span className="text-xs text-ink-soft">
+                    {formatMessageTime(review.createdAt)}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-amber-500" aria-label={`${review.rating} yulduz`}>
+                  {"★".repeat(review.rating)}
+                  <span className="text-border">
+                    {"★".repeat(5 - review.rating)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-ink-soft">
+                  {review.listing.book.title}
+                </p>
+                {review.comment && (
+                  <p className="mt-2 text-sm leading-relaxed text-ink">
+                    {review.comment}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-4 text-sm text-ink-soft">
+            Hozircha sharhlar yoʻq.
+          </p>
         )}
       </section>
     </div>

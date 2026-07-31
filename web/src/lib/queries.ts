@@ -4,6 +4,7 @@ import type {
   Category,
   Listing,
   Paginated,
+  Review,
   SellerProfile,
 } from "@/lib/types";
 
@@ -60,6 +61,14 @@ export async function getSeller(id: string): Promise<SellerProfile | null> {
     return await apiFetch<SellerProfile>(`/users/${id}`);
   } catch {
     return null;
+  }
+}
+
+export async function getSellerReviews(id: string): Promise<Review[]> {
+  try {
+    return await apiFetch<Review[]>(`/users/${id}/reviews`);
+  } catch {
+    return [];
   }
 }
 

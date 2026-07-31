@@ -80,6 +80,7 @@ export default function MessagesPage() {
             const cover =
               conversation.listing.images[0]?.url ??
               conversation.listing.book.coverUrl;
+            const unread = conversation.unreadCount ?? 0;
 
             return (
               <li key={conversation.id}>
@@ -114,12 +115,24 @@ export default function MessagesPage() {
                       {conversation.listing.book.title}
                     </p>
                     {last && (
-                      <p className="mt-0.5 truncate text-xs text-ink-soft">
+                      <p
+                        className={`mt-0.5 truncate text-xs ${
+                          unread > 0
+                            ? "font-semibold text-ink"
+                            : "text-ink-soft"
+                        }`}
+                      >
                         {last.senderId === myId ? "Siz: " : ""}
                         {last.text}
                       </p>
                     )}
                   </div>
+
+                  {unread > 0 && (
+                    <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-brand px-1.5 text-xs font-semibold text-white">
+                      {unread > 9 ? "9+" : unread}
+                    </span>
+                  )}
                 </Link>
               </li>
             );
