@@ -1,12 +1,6 @@
-import {
-  Global,
-  Inject,
-  Logger,
-  Module,
-  OnModuleDestroy,
-} from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import { Redis } from '@upstash/redis';
 
 export const REDIS_CLIENT = 'REDIS_CLIENT';
 
@@ -17,29 +11,14 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
     {
       provide: REDIS_CLIENT,
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        const logger = new Logger('Redis');
-        const client = new Redis(config.getOrThrow<string>('REDIS_URL'), {
-          connectTimeout: 10_000,
-          commandTimeout: 8_000,
-          maxRetriesPerRequest: 2,
-          retryStrategy: (attempt) => Math.min(attempt * 1_000, 10_000),
-        });
-        client.on('error', (err) =>
-          logger.error(`Connection error: ${err.message}`),
-        );
-        client.on('connect', () => logger.log('TCP connected'));
-        client.on('ready', () => logger.log('Ready to accept commands'));
-        return client;
-      },
+      useFactory: (config: ConfigService) =>
+        new Redis({
+          url: config.getOrThrow<string>('UPSTASH_REDIS_REST_URL'),
+          token: config.getOrThrow<string>('UPSTASH_REDIS_REST_TOKEN'),
+          automaticDeserialization: false,
+        }),
     },
   ],
   exports: [REDIS_CLIENT],
 })
-export class RedisModule implements OnModuleDestroy {
-  constructor(@Inject(REDIS_CLIENT) private readonly client: Redis) {}
-
-  async onModuleDestroy() {
-    await this.client.quit();
-  }
-}
+export class RedisModule {}

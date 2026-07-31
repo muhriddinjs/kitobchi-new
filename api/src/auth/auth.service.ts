@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import type { Redis } from 'ioredis';
+import type { Redis } from '@upstash/redis';
 import { PrismaService } from '../prisma/prisma.service';
 import { REDIS_CLIENT } from '../redis/redis.module';
 import { SMS_PROVIDER } from './providers/sms/sms-provider.interface';
@@ -46,8 +46,8 @@ export class AuthService {
       this.config.get('OTP_RESEND_COOLDOWN_SECONDS', '60'),
     );
 
-    await this.redis.set(this.otpKey(phone), code, 'EX', ttl);
-    await this.redis.set(cooldownKey, '1', 'EX', cooldown);
+    await this.redis.set(this.otpKey(phone), code, { ex: ttl });
+    await this.redis.set(cooldownKey, '1', { ex: cooldown });
 
     await this.sms.sendOtp(phone, code);
 

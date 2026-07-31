@@ -15,7 +15,8 @@ jobs:
         working-directory: api
     env:
       DATABASE_URL: postgresql://kitobchi:kitobchi@localhost:5432/kitobchi
-      REDIS_URL: redis://localhost:6379
+      UPSTASH_REDIS_REST_URL: https://dummy.upstash.io
+      UPSTASH_REDIS_REST_TOKEN: dummy_token
       S3_ENDPOINT: http://localhost:9000
       S3_REGION: us-east-1
       S3_BUCKET: kitobchi-listings
@@ -39,15 +40,6 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd "pg_isready -U kitobchi"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
