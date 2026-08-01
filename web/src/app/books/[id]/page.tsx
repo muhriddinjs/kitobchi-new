@@ -3,6 +3,40 @@ import { notFound } from "next/navigation";
 import ListingCard from "@/components/listing-card";
 import EmptyState from "@/components/empty-state";
 import { getBook } from "@/lib/queries";
+import type { Metadata } from "next";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const data = await getBook(id);
+  if (!data) return { title: "Kitob topilmadi" };
+
+  const { book, listings } = data;
+  const authors = book.authors.join(", ");
+  const title = authors ? `${book.title} — ${authors}` : book.title;
+
+  const description =
+    book.description?.trim() ||
+    (listings.length > 0
+      ? `Kitobchida bu kitob boʻyicha ${listings.length} ta eʼlon bor.`
+      : `"${book.title}" kitobini Kitobchida qidiring.`);
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/books/${id}` },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url: `/books/${id}`,
+      images: book.coverUrl ? [book.coverUrl] : undefined,
+    },
+  };
+}
 
 export default async function BookPage({
   params,

@@ -1,4 +1,11 @@
-import type { ListingStatus } from "@/lib/types";
+import type { ListingCondition, ListingStatus } from "@/lib/types";
+
+export const CONDITION_LABELS: Record<ListingCondition, string> = {
+  NEW: "Yangidek",
+  GOOD: "Yaxshi",
+  FAIR: "Oʻrtacha",
+  WORN: "Eskirgan",
+};
 
 export function formatPrice(price: number | null): string {
   if (price === null) return "Bepul";

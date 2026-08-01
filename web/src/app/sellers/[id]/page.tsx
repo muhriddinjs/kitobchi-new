@@ -5,6 +5,34 @@ import EmptyState from "@/components/empty-state";
 import StarRating from "@/components/star-rating";
 import { getListings, getSeller, getSellerReviews } from "@/lib/queries";
 import { formatMessageTime } from "@/lib/format";
+import type { Metadata } from "next";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const seller = await getSeller(id);
+  if (!seller) return { title: "Sotuvchi topilmadi" };
+
+  const rating =
+    seller.ratingCount > 0
+      ? `${seller.ratingAvg.toFixed(1)} ★ (${seller.ratingCount} baho)`
+      : "hozircha bahosiz";
+
+  return {
+    title: `${seller.name} — sotuvchi`,
+    description: `${seller.name} — Kitobchidagi sotuvchi, ${rating}.`,
+    alternates: { canonical: `/sellers/${id}` },
+    openGraph: {
+      type: "profile",
+      title: `${seller.name} — sotuvchi`,
+      description: `${seller.name} — Kitobchidagi sotuvchi, ${rating}.`,
+      url: `/sellers/${id}`,
+    },
+  };
+}
 
 export default async function SellerProfilePage({
   params,

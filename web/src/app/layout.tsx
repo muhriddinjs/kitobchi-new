@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Lora } from "next/font/google";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 // Uzbek Latin (oʻ, gʻ) lives in the standard latin set; Russian needs cyrillic explicitly.
@@ -15,10 +16,26 @@ const lora = Lora({
   subsets: ["latin", "latin-ext", "cyrillic"],
 });
 
+const DESCRIPTION =
+  "Kitobchi orqali kerakli kitobingizni toping yoki oʻqib boʻlgan kitobingizni soting, hadya qiling.";
+
 export const metadata: Metadata = {
-  title: "Kitobchi — ishlatilgan kitoblar bozori",
-  description:
-    "Kitobchi orqali kerakli kitobingizni toping yoki oʻqib boʻlgan kitobingizni soting, hadya qiling.",
+  // Lets every page below use relative canonical and Open Graph URLs.
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Kitobchi — ishlatilgan kitoblar bozori",
+    // Pages set only their own title; the brand is appended here so it
+    // isn't repeated in every generateMetadata.
+    template: "%s — Kitobchi",
+  },
+  description: DESCRIPTION,
+  openGraph: {
+    siteName: "Kitobchi",
+    locale: "uz_UZ",
+    type: "website",
+    title: "Kitobchi — ishlatilgan kitoblar bozori",
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({

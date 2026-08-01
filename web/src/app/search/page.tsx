@@ -2,6 +2,30 @@ import Link from "next/link";
 import ListingCard from "@/components/listing-card";
 import EmptyState from "@/components/empty-state";
 import { getCategories, getListings } from "@/lib/queries";
+import type { Metadata } from "next";
+
+const SEARCH_DESCRIPTION =
+  "Kitobchidagi barcha eʼlonlar: kitob, muallif, narx, holat va shahar boʻyicha qidiring.";
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const filtered = Object.values(params).some(Boolean);
+
+  return {
+    title: params.q ? `"${params.q}" boʻyicha qidiruv` : "Eʼlonlar",
+    description: SEARCH_DESCRIPTION,
+    alternates: { canonical: "/search" },
+    // Filter and page combinations are effectively unlimited and each is a
+    // near-duplicate of the rest, so only the bare /search page is worth
+    // indexing. Links are still followed, and individual listings reach
+    // the index through the sitemap either way.
+    robots: { index: !filtered, follow: true },
+  };
+}
 
 function pageHref(
   params: Record<string, string | undefined>,

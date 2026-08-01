@@ -8,8 +8,45 @@ import ContactSeller from "@/components/contact-seller";
 import FavoriteButton from "@/components/favorite-button";
 import ListingGallery from "@/components/listing-gallery";
 import ReviewForm from "@/components/review-form";
-import { formatPrice } from "@/lib/format";
+import { CONDITION_LABELS, formatPrice } from "@/lib/format";
 import { getListing } from "@/lib/queries";
+import type { Metadata } from "next";
+
+// Without this every listing shared into a Telegram chat previews with the
+// same site-wide title and no cover — which is most of how links travel
+// here, and the whole reason these pages are server-rendered.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const listing = await getListing(id);
+  if (!listing) return { title: "Eʼlon topilmadi" };
+
+  const { book } = listing;
+  const authors = book.authors.join(", ");
+  const title = authors ? `${book.title} — ${authors}` : book.title;
+
+  const description =
+    listing.description?.trim() ||
+    `${formatPrice(listing.price)} · ${CONDITION_LABELS[listing.condition]} · ${listing.city}. Sotuvchi bilan Kitobchida bevosita bogʻlaning.`;
+
+  const image = listing.images[0]?.url ?? book.coverUrl;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/listings/${id}` },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url: `/listings/${id}`,
+      images: image ? [image] : undefined,
+    },
+  };
+}
 
 export default async function ListingDetailPage({
   params,

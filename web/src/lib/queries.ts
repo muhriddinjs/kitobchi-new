@@ -10,11 +10,20 @@ import type {
 
 // Server-side reads use the API directly and degrade to an empty result if
 // the backend isn't reachable yet, so pages still render during local setup.
+//
+// The degrading is deliberate, but silent degrading is not: an unreachable
+// API and a genuinely empty catalogue look identical on the page, so the
+// failure is logged. This is server-side output — it lands in the Vercel
+// function logs, not in anyone's browser.
+function logFailure(what: string, err: unknown): void {
+  console.error(`[queries] ${what} failed:`, err);
+}
 
 export async function getCategories(): Promise<Category[]> {
   try {
     return await apiFetch<Category[]>("/categories");
-  } catch {
+  } catch (err) {
+    logFailure("getCategories", err);
     return [];
   }
 }
@@ -43,7 +52,8 @@ export async function getListings(
 
   try {
     return await apiFetch<Paginated<Listing>>(`/listings?${params}`);
-  } catch {
+  } catch (err) {
+    logFailure("getListings", err);
     return { items: [], page: 1, limit: 20, total: 0 };
   }
 }
@@ -51,7 +61,8 @@ export async function getListings(
 export async function getListing(id: string): Promise<Listing | null> {
   try {
     return await apiFetch<Listing>(`/listings/${id}`);
-  } catch {
+  } catch (err) {
+    logFailure(`getListing(${id})`, err);
     return null;
   }
 }
@@ -59,7 +70,8 @@ export async function getListing(id: string): Promise<Listing | null> {
 export async function getSeller(id: string): Promise<SellerProfile | null> {
   try {
     return await apiFetch<SellerProfile>(`/users/${id}`);
-  } catch {
+  } catch (err) {
+    logFailure(`getSeller(${id})`, err);
     return null;
   }
 }
@@ -67,7 +79,8 @@ export async function getSeller(id: string): Promise<SellerProfile | null> {
 export async function getSellerReviews(id: string): Promise<Review[]> {
   try {
     return await apiFetch<Review[]>(`/users/${id}/reviews`);
-  } catch {
+  } catch (err) {
+    logFailure(`getSellerReviews(${id})`, err);
     return [];
   }
 }
@@ -79,7 +92,8 @@ export async function getBook(
     return await apiFetch<{ book: Book; listings: Listing[] }>(
       `/books/${id}`,
     );
-  } catch {
+  } catch (err) {
+    logFailure(`getBook(${id})`, err);
     return null;
   }
 }
