@@ -1,6 +1,25 @@
+import type { ListingStatus } from "@/lib/types";
+
 export function formatPrice(price: number | null): string {
   if (price === null) return "Bepul";
   return `${price.toLocaleString("uz-UZ")} soʻm`;
+}
+
+export const LISTING_STATUS_LABELS: Record<ListingStatus, string> = {
+  ACTIVE: "Faol",
+  RESERVED: "Band qilingan",
+  SOLD: "Sotilgan",
+  HIDDEN: "Yashirilgan",
+};
+
+// "01.08.2026" — for admin tables where the exact day matters more than
+// the compact chat-style relative form.
+export function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("uz-UZ", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 // "14:05" for today, "31.07 14:05" otherwise — compact chat timestamps.

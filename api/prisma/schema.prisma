@@ -48,6 +48,11 @@ model User {
   ratingAvg         Float    @default(0)
   ratingCount       Int      @default(0)
   role              UserRole @default(USER)
+  // Set when an admin bans the account. Checked on every authenticated
+  // request (JwtStrategy), so a ban takes effect immediately rather than
+  // when the 15-minute access token happens to expire.
+  bannedAt          DateTime?
+  banReason         String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

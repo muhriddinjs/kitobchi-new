@@ -84,6 +84,11 @@ export class AuthService {
       create: { phone, name: phone },
     });
 
+    // A banned user must not be able to walk back in through a fresh OTP.
+    if (user.bannedAt) {
+      throw new UnauthorizedException('Hisobingiz bloklangan');
+    }
+
     return this.issueTokens({
       id: user.id,
       phone: user.phone,
@@ -109,6 +114,7 @@ export class AuthService {
       where: { id: payload.sub },
     });
     if (!user) throw new UnauthorizedException('Foydalanuvchi topilmadi');
+    if (user.bannedAt) throw new UnauthorizedException('Hisobingiz bloklangan');
 
     return this.issueTokens({
       id: user.id,
