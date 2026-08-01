@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ApiError, apiFetch, authHeaders, getAccessToken } from "@/lib/api";
 
-// Shown on SOLD listings; the API enforces who may actually review
-// (the recorded buyer, or anyone who chatted about the listing).
+// Only the buyer the seller recorded may review, and only once. Asking the
+// API first keeps everyone else from seeing a button that would just fail.
 export default function ReviewForm({ listingId }: { listingId: string }) {
+  const [allowed, setAllowed] = useState(false);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [open, setOpen] = useState(false);
@@ -13,7 +14,29 @@ export default function ReviewForm({ listingId }: { listingId: string }) {
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!getAccessToken()) return null;
+  useEffect(() => {
+    if (!getAccessToken()) return;
+    let cancelled = false;
+
+    async function run() {
+      try {
+        const res = await apiFetch<{ canReview: boolean }>(
+          `/listings/${listingId}/can-review`,
+          { headers: authHeaders() },
+        );
+        if (!cancelled) setAllowed(res.canReview);
+      } catch {
+        // Stay hidden if we can't tell.
+      }
+    }
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [listingId]);
+
+  if (!allowed) return null;
 
   if (done) {
     return (

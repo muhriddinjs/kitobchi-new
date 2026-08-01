@@ -66,6 +66,7 @@ model User {
   favorites         Favorite[]
   notifications     Notification[]
   reports           Report[]
+  contactViews      ListingContactView[]
 
   @@map("users")
 }
@@ -121,6 +122,7 @@ model Listing {
   reviews       Review[]
   favorites     Favorite[]
   reports       Report[]
+  contactViews  ListingContactView[]
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
@@ -138,6 +140,23 @@ model ListingImage {
   sortOrder Int     @default(0)
 
   @@map("listing_images")
+}
+
+// Recorded when a logged-in user reveals a seller's contact details. Deals
+// here happen offline and often by phone, so without this the only trace of
+// a buyer would be an in-site conversation — and a seller marking a listing
+// sold would have nobody to attribute it to. Doubles as the "who was
+// interested" signal for the seller.
+model ListingContactView {
+  id        String   @id @default(uuid())
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([listingId, userId])
+  @@map("listing_contact_views")
 }
 
 model Conversation {

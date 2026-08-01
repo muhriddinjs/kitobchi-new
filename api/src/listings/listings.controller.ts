@@ -66,8 +66,17 @@ export class ListingsController {
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 20, ttl: 600_000 } })
   @Get(':id/contact')
-  contact(@Param('id') id: string) {
-    return this.listingsService.contact(id);
+  contact(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.listingsService.contact(id, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/buyer-candidates')
+  buyerCandidates(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.listingsService.buyerCandidates(id, user.id);
   }
 
   @UseGuards(JwtAuthGuard)

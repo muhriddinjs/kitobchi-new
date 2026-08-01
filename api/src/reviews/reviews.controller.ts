@@ -19,6 +19,15 @@ export class ReviewsController {
     return this.reviewsService.create(user.id, listingId, dto);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('listings/:id/can-review')
+  canReview(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') listingId: string,
+  ) {
+    return this.reviewsService.canReview(listingId, user.id);
+  }
+
   @Get('users/:id/reviews')
   listForUser(@Param('id') userId: string) {
     return this.reviewsService.listForUser(userId);

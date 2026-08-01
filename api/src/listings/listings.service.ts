@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -12,6 +13,15 @@ import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { QueryListingsDto } from './dto/query-listings.dto';
 import { MarkSoldDto } from './dto/mark-sold.dto';
+
+const CANDIDATE_SELECT = { id: true, name: true, avatarUrl: true };
+
+export interface Candidate {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  source: 'chat' | 'contact';
+}
 
 @Injectable()
 export class ListingsService {
@@ -122,10 +132,11 @@ export class ListingsService {
   // Seller contact details, served only to logged-in users so the numbers
   // can't be harvested from the public listing endpoints. See the note on
   // SELLER_SELECT in common/prisma-selects.ts.
-  async contact(id: string) {
+  async contact(id: string, userId: string) {
     const listing = await this.prisma.listing.findUnique({
       where: { id },
       select: {
+        sellerId: true,
         status: true,
         seller: { select: { phone: true, telegramUsername: true } },
       },
@@ -133,7 +144,48 @@ export class ListingsService {
     if (!listing || listing.status === 'HIDDEN') {
       throw new NotFoundException('Eʼlon topilmadi');
     }
+
+    // Remember who asked, so the seller has someone to attribute the sale
+    // to when the deal happens over the phone rather than in site chat.
+    // The seller looking at their own listing isn't a lead.
+    if (listing.sellerId !== userId) {
+      await this.prisma.listingContactView.upsert({
+        where: { listingId_userId: { listingId: id, userId } },
+        update: {},
+        create: { listingId: id, userId },
+      });
+    }
+
     return listing.seller;
+  }
+
+  // Everyone who showed concrete interest in this listing: opened a chat
+  // about it, or asked for the seller's number. This is the set the seller
+  // picks from when marking the listing sold.
+  async buyerCandidates(id: string, sellerId: string) {
+    await this.assertOwner(id, sellerId);
+
+    const [conversations, contactViews] = await Promise.all([
+      this.prisma.conversation.findMany({
+        where: { listingId: id },
+        select: { buyer: { select: CANDIDATE_SELECT } },
+      }),
+      this.prisma.listingContactView.findMany({
+        where: { listingId: id },
+        select: { user: { select: CANDIDATE_SELECT } },
+      }),
+    ]);
+
+    const byId = new Map<string, Candidate>();
+    for (const { buyer } of conversations) {
+      byId.set(buyer.id, { ...buyer, source: 'chat' });
+    }
+    for (const { user } of contactViews) {
+      // Someone who did both is a stronger lead — chat wins as the label.
+      if (!byId.has(user.id)) byId.set(user.id, { ...user, source: 'contact' });
+    }
+
+    return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async update(id: string, sellerId: string, dto: UpdateListingDto) {
@@ -146,10 +198,34 @@ export class ListingsService {
   }
 
   async markSold(id: string, sellerId: string, dto: MarkSoldDto) {
-    await this.assertOwner(id, sellerId);
+    const listing = await this.assertOwner(id, sellerId);
+    if (listing.status === 'SOLD') {
+      throw new BadRequestException(
+        'Bu eʼlon allaqachon sotilgan deb belgilangan',
+      );
+    }
+
+    // Recording a buyer is optional (the sale may have gone to someone with
+    // no account), but if one is named it has to be a real user who
+    // actually showed interest — otherwise the review permission it grants
+    // could be handed to anyone, including an account the seller controls.
+    if (dto.soldToUserId) {
+      if (dto.soldToUserId === sellerId) {
+        throw new BadRequestException(
+          'Xaridor sifatida oʻzingizni tanlay olmaysiz',
+        );
+      }
+      const candidates = await this.buyerCandidates(id, sellerId);
+      if (!candidates.some((c) => c.id === dto.soldToUserId)) {
+        throw new BadRequestException(
+          'Bu foydalanuvchi eʼlon boʻyicha siz bilan bogʻlanmagan',
+        );
+      }
+    }
+
     return this.prisma.listing.update({
       where: { id },
-      data: { status: 'SOLD', soldToUserId: dto.soldToUserId },
+      data: { status: 'SOLD', soldToUserId: dto.soldToUserId ?? null },
       include: LISTING_INCLUDE,
     });
   }

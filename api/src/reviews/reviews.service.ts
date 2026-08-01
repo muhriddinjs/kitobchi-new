@@ -26,22 +26,17 @@ export class ReviewsService {
       );
     }
 
-    // Who counts as "the buyer": the explicitly recorded one if the seller
-    // set it on mark-sold, otherwise anyone who had a conversation about
-    // this listing (the pragmatic MVP rule).
-    if (listing.soldToUserId) {
-      if (listing.soldToUserId !== reviewerId) {
-        throw new ForbiddenException('Bu eʼlonning xaridori emassiz');
-      }
-    } else {
-      const conversation = await this.prisma.conversation.findUnique({
-        where: { listingId_buyerId: { listingId, buyerId: reviewerId } },
-      });
-      if (!conversation) {
-        throw new ForbiddenException(
-          'Baho berish uchun sotuvchi bilan shu eʼlon boʻyicha suhbatingiz boʻlishi kerak',
-        );
-      }
+    // Only the buyer the seller actually recorded may review. The previous
+    // fallback — anyone who had opened a conversation about the listing —
+    // meant a rating could be moved by sending a single message, which is
+    // no basis for a rating buyers are meant to trust.
+    if (!listing.soldToUserId) {
+      throw new ForbiddenException(
+        'Sotuvchi bu eʼlon boʻyicha xaridorni qayd etmagan',
+      );
+    }
+    if (listing.soldToUserId !== reviewerId) {
+      throw new ForbiddenException('Bu eʼlonning xaridori emassiz');
     }
 
     try {
@@ -82,6 +77,27 @@ export class ReviewsService {
       }
       throw err;
     }
+  }
+
+  // Lets the listing page decide whether to offer the review form at all,
+  // without putting `soldToUserId` into the public listing payload — who
+  // bought a book isn't everyone's business.
+  async canReview(listingId: string, userId: string) {
+    const listing = await this.prisma.listing.findUnique({
+      where: { id: listingId },
+      select: { status: true, soldToUserId: true },
+    });
+    if (!listing) throw new NotFoundException('Eʼlon topilmadi');
+
+    if (listing.status !== 'SOLD' || listing.soldToUserId !== userId) {
+      return { canReview: false };
+    }
+
+    const existing = await this.prisma.review.findUnique({
+      where: { listingId_reviewerId: { listingId, reviewerId: userId } },
+    });
+
+    return { canReview: !existing };
   }
 
   async listForUser(userId: string) {

@@ -37,6 +37,14 @@ export interface SellerContact {
   telegramUsername: string | null;
 }
 
+/** Someone who chatted about a listing or asked for the seller's number. */
+export interface BuyerCandidate {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  source: "chat" | "contact";
+}
+
 export interface ListingImage {
   id: string;
   url: string;

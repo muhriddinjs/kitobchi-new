@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { apiFetch, authHeaders, getAccessToken } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
+import MarkSoldDialog from "@/components/mark-sold-dialog";
 import type { Listing } from "@/lib/types";
 
 type Status = "loading" | "unauthorized" | "ready";
@@ -20,6 +21,8 @@ export default function MyListingsPage() {
   const [status, setStatus] = useState<Status>("loading");
   const [listings, setListings] = useState<Listing[]>([]);
   const [actingOn, setActingOn] = useState<string | null>(null);
+  // Which listing has its "who bought it?" picker open.
+  const [sellingId, setSellingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,21 +44,9 @@ export default function MyListingsPage() {
     void load();
   }, []);
 
-  async function markSold(id: string) {
-    setActingOn(id);
-    setError(null);
-    try {
-      const updated = await apiFetch<Listing>(`/listings/${id}/mark-sold`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({}),
-      });
-      setListings((prev) => prev.map((l) => (l.id === id ? updated : l)));
-    } catch {
-      setError("Amalni bajarib boʻlmadi. Qayta urinib koʻring.");
-    } finally {
-      setActingOn(null);
-    }
+  function onMarkedSold(updated: Listing) {
+    setListings((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+    setSellingId(null);
   }
 
   async function hide(id: string) {
@@ -155,27 +146,34 @@ export default function MyListingsPage() {
                     {STATUS_LABELS[listing.status] ?? listing.status}
                   </p>
 
-                  <div className="mt-auto flex flex-wrap gap-2 pt-2">
-                    {listing.status === "ACTIVE" && (
-                      <>
-                        <button
-                          type="button"
-                          disabled={actingOn === listing.id}
-                          onClick={() => markSold(listing.id)}
-                          className="rounded-full bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-dark disabled:opacity-50"
-                        >
-                          Sotildi deb belgilash
-                        </button>
-                        <button
-                          type="button"
-                          disabled={actingOn === listing.id}
-                          onClick={() => hide(listing.id)}
-                          className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-ink-soft hover:border-brand hover:text-brand-dark disabled:opacity-50"
-                        >
-                          Yashirish
-                        </button>
-                      </>
-                    )}
+                  <div className="mt-auto pt-2">
+                    {listing.status === "ACTIVE" &&
+                      (sellingId === listing.id ? (
+                        <MarkSoldDialog
+                          listingId={listing.id}
+                          onDone={onMarkedSold}
+                          onCancel={() => setSellingId(null)}
+                        />
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={actingOn === listing.id}
+                            onClick={() => setSellingId(listing.id)}
+                            className="rounded-full bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-dark disabled:opacity-50"
+                          >
+                            Sotildi deb belgilash
+                          </button>
+                          <button
+                            type="button"
+                            disabled={actingOn === listing.id}
+                            onClick={() => hide(listing.id)}
+                            className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-ink-soft hover:border-brand hover:text-brand-dark disabled:opacity-50"
+                          >
+                            Yashirish
+                          </button>
+                        </div>
+                      ))}
                   </div>
                 </div>
               </li>
