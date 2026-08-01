@@ -132,6 +132,12 @@ export class ListingsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post(':id/unhide')
+  unhide(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.listingsService.unhide(id, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post(':id/report')
   report(
     @CurrentUser() user: AuthenticatedUser,

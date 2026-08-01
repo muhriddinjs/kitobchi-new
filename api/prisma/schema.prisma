@@ -113,6 +113,10 @@ model Listing {
   price         Int?
   condition     ListingCondition
   status        ListingStatus     @default(ACTIVE)
+  // Set when a listing is hidden by moderation (an admin, a resolved
+  // report, or the seller being banned) rather than by the seller. Sellers
+  // can restore their own hidden listings but not a moderated one.
+  moderatedAt   DateTime?
   description   String?
   city          String
   soldToUserId  String?

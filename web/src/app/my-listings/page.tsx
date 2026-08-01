@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { apiFetch, authHeaders, getAccessToken } from "@/lib/api";
+import { ApiError, apiFetch, authHeaders, getAccessToken } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import MarkSoldDialog from "@/components/mark-sold-dialog";
 import type { Listing } from "@/lib/types";
@@ -63,6 +63,26 @@ export default function MyListingsPage() {
       );
     } catch {
       setError("Amalni bajarib boʻlmadi. Qayta urinib koʻring.");
+    } finally {
+      setActingOn(null);
+    }
+  }
+
+  async function unhide(id: string) {
+    setActingOn(id);
+    setError(null);
+    try {
+      const updated = await apiFetch<Listing>(`/listings/${id}/unhide`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      setListings((prev) => prev.map((l) => (l.id === id ? updated : l)));
+    } catch (err) {
+      setError(
+        err instanceof ApiError && err.message
+          ? err.message
+          : "Amalni bajarib boʻlmadi. Qayta urinib koʻring.",
+      );
     } finally {
       setActingOn(null);
     }
@@ -147,6 +167,23 @@ export default function MyListingsPage() {
                   </p>
 
                   <div className="mt-auto pt-2">
+                    {listing.status === "HIDDEN" &&
+                      (listing.moderatedAt ? (
+                        <p className="text-xs text-red-700">
+                          Bu eʼlon administrator tomonidan yashirilgan. Sabab
+                          boʻyicha savolingiz boʻlsa, biz bilan bogʻlaning.
+                        </p>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={actingOn === listing.id}
+                          onClick={() => unhide(listing.id)}
+                          className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-ink-soft hover:border-brand hover:text-brand-dark disabled:opacity-50"
+                        >
+                          Qaytarish
+                        </button>
+                      ))}
+
                     {listing.status === "ACTIVE" &&
                       (sellingId === listing.id ? (
                         <MarkSoldDialog

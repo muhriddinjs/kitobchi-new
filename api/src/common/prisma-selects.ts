@@ -1,4 +1,4 @@
-// Shared Prisma select/include shapes for listing payloads.
+// Shared Prisma select shapes for listing payloads.
 //
 // These live in `common/` rather than in `listings.service.ts` because the
 // catalog module needs them too, and `listings.service.ts` already imports
@@ -18,8 +18,30 @@ export const SELLER_SELECT = {
   // account and is rate-limited.
 };
 
-export const LISTING_INCLUDE = {
+// A `select`, not an `include`: with `include` Prisma returns every scalar
+// column on the model, so any field added to Listing later would silently
+// become public — which is exactly how `soldToUserId` ended up exposed.
+// Listing fields have to be named here to be served.
+export const LISTING_SELECT = {
+  id: true,
+  type: true,
+  price: true,
+  condition: true,
+  status: true,
+  moderatedAt: true,
+  description: true,
+  city: true,
+  createdAt: true,
+  updatedAt: true,
+  bookId: true,
+  sellerId: true,
   book: true,
   seller: { select: SELLER_SELECT },
-  images: { orderBy: { sortOrder: 'asc' as const } },
+  images: {
+    select: { id: true, url: true, sortOrder: true },
+    orderBy: { sortOrder: 'asc' as const },
+  },
+  // NOTE: `soldToUserId` is deliberately absent — who bought a given book
+  // isn't public information. `GET /listings/:id/can-review` answers the
+  // only question the UI actually needs from it.
 };

@@ -38,9 +38,10 @@ export class ReportsService {
     const report = await this.assertExists(id);
 
     return this.prisma.$transaction(async (tx) => {
+      // A moderation takedown, so the seller can't quietly put it back up.
       await tx.listing.update({
         where: { id: report.listingId },
-        data: { status: 'HIDDEN' },
+        data: { status: 'HIDDEN', moderatedAt: new Date() },
       });
       return tx.report.update({
         where: { id },

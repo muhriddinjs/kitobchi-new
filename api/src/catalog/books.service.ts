@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
-import { LISTING_INCLUDE } from '../common/prisma-selects';
+import { LISTING_SELECT } from '../common/prisma-selects';
 import { UpsertBookDto } from './dto/upsert-book.dto';
 
 interface OpenLibraryBook {
@@ -38,7 +38,7 @@ export class BooksService {
 
     const listings = await this.prisma.listing.findMany({
       where: { bookId: id, status: { notIn: ['HIDDEN', 'SOLD'] } },
-      include: LISTING_INCLUDE,
+      select: LISTING_SELECT,
       orderBy: { createdAt: 'desc' },
     });
 

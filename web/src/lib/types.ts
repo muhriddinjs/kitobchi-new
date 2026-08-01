@@ -62,6 +62,8 @@ export interface Listing {
   description: string | null;
   city: string;
   images: ListingImage[];
+  /** Set when moderation hid the listing — the seller can't restore it. */
+  moderatedAt: string | null;
   createdAt: string;
 }
 

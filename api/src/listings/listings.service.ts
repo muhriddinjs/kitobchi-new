@@ -8,7 +8,7 @@ import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { BooksService } from '../catalog/books.service';
 import { StorageService } from '../storage/storage.service';
-import { LISTING_INCLUDE } from '../common/prisma-selects';
+import { LISTING_SELECT } from '../common/prisma-selects';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { QueryListingsDto } from './dto/query-listings.dto';
@@ -44,7 +44,7 @@ export class ListingsService {
         city: dto.city,
         description: dto.description,
       },
-      include: LISTING_INCLUDE,
+      select: LISTING_SELECT,
     });
   }
 
@@ -101,7 +101,7 @@ export class ListingsService {
     const [items, total] = await Promise.all([
       this.prisma.listing.findMany({
         where,
-        include: LISTING_INCLUDE,
+        select: LISTING_SELECT,
         orderBy,
         skip: (page - 1) * limit,
         take: limit,
@@ -115,7 +115,7 @@ export class ListingsService {
   async findMine(sellerId: string) {
     return this.prisma.listing.findMany({
       where: { sellerId },
-      include: LISTING_INCLUDE,
+      select: LISTING_SELECT,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -123,7 +123,7 @@ export class ListingsService {
   async findOne(id: string) {
     const listing = await this.prisma.listing.findUnique({
       where: { id },
-      include: LISTING_INCLUDE,
+      select: LISTING_SELECT,
     });
     if (!listing) throw new NotFoundException('Eʼlon topilmadi');
     return listing;
@@ -193,7 +193,7 @@ export class ListingsService {
     return this.prisma.listing.update({
       where: { id },
       data: dto,
-      include: LISTING_INCLUDE,
+      select: LISTING_SELECT,
     });
   }
 
@@ -226,7 +226,7 @@ export class ListingsService {
     return this.prisma.listing.update({
       where: { id },
       data: { status: 'SOLD', soldToUserId: dto.soldToUserId ?? null },
-      include: LISTING_INCLUDE,
+      select: LISTING_SELECT,
     });
   }
 
@@ -235,6 +235,28 @@ export class ListingsService {
     return this.prisma.listing.update({
       where: { id },
       data: { status: 'HIDDEN' },
+      select: LISTING_SELECT,
+    });
+  }
+
+  // Hiding used to be one-way: a seller who hid a listing by mistake had no
+  // way to bring it back. They can now — unless it was moderation that took
+  // it down, in which case restoring it would undo the moderator's decision.
+  async unhide(id: string, sellerId: string) {
+    const listing = await this.assertOwner(id, sellerId);
+    if (listing.status !== 'HIDDEN') {
+      throw new BadRequestException('Bu eʼlon yashirilmagan');
+    }
+    if (listing.moderatedAt) {
+      throw new ForbiddenException(
+        'Bu eʼlon administrator tomonidan yashirilgan, uni oʻzingiz qaytara olmaysiz',
+      );
+    }
+
+    return this.prisma.listing.update({
+      where: { id },
+      data: { status: 'ACTIVE' },
+      select: LISTING_SELECT,
     });
   }
 

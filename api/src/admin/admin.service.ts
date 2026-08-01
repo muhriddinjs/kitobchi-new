@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { LISTING_INCLUDE } from '../common/prisma-selects';
+import { LISTING_SELECT } from '../common/prisma-selects';
 import { QueryAdminUsersDto } from './dto/query-admin-users.dto';
 import { QueryAdminListingsDto } from './dto/query-admin-listings.dto';
 import { BanUserDto } from './dto/ban-user.dto';
@@ -81,9 +81,11 @@ export class AdminService {
         select: ADMIN_USER_SELECT,
       });
 
+      // Marked as moderated, not merely hidden, so the seller can't simply
+      // restore them all if they're later unbanned.
       const { count } = await tx.listing.updateMany({
         where: { sellerId: userId, status: { in: ['ACTIVE', 'RESERVED'] } },
-        data: { status: 'HIDDEN' },
+        data: { status: 'HIDDEN', moderatedAt: new Date() },
       });
 
       return { user: banned, hiddenListings: count };
@@ -128,7 +130,7 @@ export class AdminService {
     const [items, total] = await Promise.all([
       this.prisma.listing.findMany({
         where,
-        include: LISTING_INCLUDE,
+        select: LISTING_SELECT,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -145,8 +147,13 @@ export class AdminService {
 
     return this.prisma.listing.update({
       where: { id },
-      data: { status: hidden ? 'HIDDEN' : 'ACTIVE' },
-      include: LISTING_INCLUDE,
+      data: {
+        status: hidden ? 'HIDDEN' : 'ACTIVE',
+        // Restoring clears the mark, so the listing goes back to being
+        // ordinary and the seller controls it again.
+        moderatedAt: hidden ? new Date() : null,
+      },
+      select: LISTING_SELECT,
     });
   }
 }

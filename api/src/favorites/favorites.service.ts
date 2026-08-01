@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { LISTING_INCLUDE } from '../common/prisma-selects';
+import { LISTING_SELECT } from '../common/prisma-selects';
 
 @Injectable()
 export class FavoritesService {
@@ -42,7 +42,7 @@ export class FavoritesService {
   async list(userId: string) {
     const rows = await this.prisma.favorite.findMany({
       where: { userId, listing: { status: { not: 'HIDDEN' } } },
-      include: { listing: { include: LISTING_INCLUDE } },
+      select: { listing: { select: LISTING_SELECT } },
       orderBy: { createdAt: 'desc' },
     });
     return rows.map((r) => r.listing);
