@@ -32,4 +32,16 @@ export default tseslint.config(
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
+  {
+    // supertest types `res.body` as `any`, so asserting on a response shape
+    // trips the unsafe-access rules on essentially every line. Declaring a
+    // type for each response would restate the API rather than check it —
+    // the assertions themselves are what pin the shape down here.
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+    },
+  },
 );
