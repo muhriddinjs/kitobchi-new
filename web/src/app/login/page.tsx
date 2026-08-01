@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ApiError, apiFetch, storeTokens } from "@/lib/api";
+import { safeNextPath } from "@/lib/auth-redirect";
 
 type Step = "phone" | "otp";
 
@@ -56,8 +57,14 @@ export default function LoginPage() {
         },
       );
       storeTokens(res.accessToken, res.refreshToken);
+      // Back to whatever sent them here, so a half-filled listing form isn't
+      // a dead end. Read at click time rather than with useSearchParams,
+      // which would force this prerendered page to render on the client.
+      const next = safeNextPath(
+        new URLSearchParams(window.location.search).get("next"),
+      );
       // Full reload so the header picks up the logged-in state.
-      window.location.assign("/");
+      window.location.assign(next);
     } catch (err) {
       setError(errorMessage(err, "Kod notoʻgʻri yoki muddati oʻtgan."));
       setLoading(false);

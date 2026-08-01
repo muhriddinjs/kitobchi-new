@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ApiError, apiFetch, authHeaders, getAccessToken } from "@/lib/api";
+import { loginHref } from "@/lib/auth-redirect";
 import type { SellerContact } from "@/lib/types";
 
 // Contact details never travel with the public listing payload — they're
@@ -10,6 +11,7 @@ import type { SellerContact } from "@/lib/types";
 // harvested straight off the listing pages.
 export default function ContactSeller({ listingId }: { listingId: string }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [contact, setContact] = useState<SellerContact | null>(null);
   const [revealing, setRevealing] = useState(false);
   const [openingChat, setOpeningChat] = useState(false);
@@ -17,7 +19,7 @@ export default function ContactSeller({ listingId }: { listingId: string }) {
 
   async function openChat() {
     if (!getAccessToken()) {
-      router.push("/login");
+      router.push(loginHref(pathname));
       return;
     }
     setOpeningChat(true);
@@ -41,7 +43,7 @@ export default function ContactSeller({ listingId }: { listingId: string }) {
 
   async function revealContact() {
     if (!getAccessToken()) {
-      router.push("/login");
+      router.push(loginHref(pathname));
       return;
     }
     setRevealing(true);

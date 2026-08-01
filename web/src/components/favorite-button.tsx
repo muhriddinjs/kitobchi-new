@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { apiFetch, authHeaders, getAccessToken } from "@/lib/api";
+import { loginHref } from "@/lib/auth-redirect";
 
 export default function FavoriteButton({ listingId }: { listingId: string }) {
   const router = useRouter();
+  const pathname = usePathname();
   // null = state unknown (logged out or still loading ids)
   const [favorited, setFavorited] = useState<boolean | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -29,7 +31,7 @@ export default function FavoriteButton({ listingId }: { listingId: string }) {
 
   async function toggle() {
     if (!loggedIn) {
-      router.push("/login");
+      router.push(loginHref(pathname));
       return;
     }
     if (favorited === null || busy) return;

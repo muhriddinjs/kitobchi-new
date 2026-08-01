@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch, apiUpload, authHeaders } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { apiFetch, apiUpload, authHeaders, getAccessToken } from "@/lib/api";
+import { loginHref } from "@/lib/auth-redirect";
 import type { Book, Category, Listing } from "@/lib/types";
 
 type Step = "isbn" | "details";
@@ -9,6 +11,8 @@ type Step = "isbn" | "details";
 const MAX_IMAGES = 6;
 
 export default function NewListingPage() {
+  const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
   const [step, setStep] = useState<Step>("isbn");
   const [isbn, setIsbn] = useState("");
   const [lookupError, setLookupError] = useState<string | null>(null);
@@ -30,8 +34,17 @@ export default function NewListingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [imageWarning, setImageWarning] = useState<string | null>(null);
 
+  // Posting a listing requires an account, so check before rendering the
+  // form rather than at submit — otherwise someone fills in every field,
+  // picks images, and only then finds out they need to sign in.
   useEffect(() => {
-    async function loadCategories() {
+    async function init() {
+      if (!getAccessToken()) {
+        router.replace(loginHref("/listings/new"));
+        return;
+      }
+      setAuthorized(true);
+
       try {
         const list = await apiFetch<Category[]>("/categories");
         setCategories(list);
@@ -39,8 +52,8 @@ export default function NewListingPage() {
         // Non-blocking: the category field just stays empty if this fails.
       }
     }
-    void loadCategories();
-  }, []);
+    void init();
+  }, [router]);
 
   async function handleIsbnLookup() {
     setLookingUp(true);
@@ -134,6 +147,16 @@ export default function NewListingPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // Nothing until the token check has run, so the form never flashes up for
+  // someone who's about to be sent to the login page.
+  if (!authorized) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-16 text-center text-sm text-ink-soft sm:px-6">
+        Yuklanmoqda...
+      </div>
+    );
   }
 
   if (submitted) {
