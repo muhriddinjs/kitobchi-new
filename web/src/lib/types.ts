@@ -22,13 +22,18 @@ export interface Book {
   categoryId: string | null;
 }
 
+// Contact details are not part of listing payloads — fetch them from
+// `GET /listings/:id/contact` (auth required). See SellerContact below.
 export interface SellerSummary {
   id: string;
   name: string;
-  phone: string;
   avatarUrl: string | null;
   ratingAvg: number;
   ratingCount: number;
+}
+
+export interface SellerContact {
+  phone: string;
   telegramUsername: string | null;
 }
 
@@ -55,9 +60,7 @@ export interface Listing {
 export interface SellerProfile {
   id: string;
   name: string;
-  phone: string;
   avatarUrl: string | null;
-  telegramUsername: string | null;
   ratingAvg: number;
   ratingCount: number;
   createdAt: string;

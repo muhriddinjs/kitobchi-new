@@ -70,11 +70,7 @@ export default async function ListingDetailPage({
             <p className="mt-1 text-sm text-ink-soft">{listing.city}</p>
 
             <div className="mt-5 flex flex-col gap-2">
-              <ContactSeller
-                listingId={listing.id}
-                phone={seller.phone}
-                telegramUsername={seller.telegramUsername}
-              />
+              <ContactSeller listingId={listing.id} />
               <FavoriteButton listingId={listing.id} />
             </div>
           </div>

@@ -7,28 +7,11 @@ import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { BooksService } from '../catalog/books.service';
 import { StorageService } from '../storage/storage.service';
+import { LISTING_INCLUDE } from '../common/prisma-selects';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { QueryListingsDto } from './dto/query-listings.dto';
 import { MarkSoldDto } from './dto/mark-sold.dto';
-
-export const SELLER_SELECT = {
-  id: true,
-  name: true,
-  // Classifieds model: the deal happens offline, so the buyer needs a direct
-  // contact route — phone is public by design (like any classifieds site).
-  phone: true,
-  avatarUrl: true,
-  ratingAvg: true,
-  ratingCount: true,
-  telegramUsername: true,
-};
-
-export const LISTING_INCLUDE = {
-  book: true,
-  seller: { select: SELLER_SELECT },
-  images: { orderBy: { sortOrder: 'asc' as const } },
-};
 
 @Injectable()
 export class ListingsService {
@@ -134,6 +117,23 @@ export class ListingsService {
     });
     if (!listing) throw new NotFoundException('Eʼlon topilmadi');
     return listing;
+  }
+
+  // Seller contact details, served only to logged-in users so the numbers
+  // can't be harvested from the public listing endpoints. See the note on
+  // SELLER_SELECT in common/prisma-selects.ts.
+  async contact(id: string) {
+    const listing = await this.prisma.listing.findUnique({
+      where: { id },
+      select: {
+        status: true,
+        seller: { select: { phone: true, telegramUsername: true } },
+      },
+    });
+    if (!listing || listing.status === 'HIDDEN') {
+      throw new NotFoundException('Eʼlon topilmadi');
+    }
+    return listing.seller;
   }
 
   async update(id: string, sellerId: string, dto: UpdateListingDto) {

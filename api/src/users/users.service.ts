@@ -2,12 +2,13 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
+// Same reasoning as SELLER_SELECT: contact details aren't part of any
+// public payload. `GET /users/me` returns the full row (it's your own
+// profile) — this select is only for other people's profiles.
 const PUBLIC_PROFILE_SELECT = {
   id: true,
   name: true,
-  phone: true,
   avatarUrl: true,
-  telegramUsername: true,
   ratingAvg: true,
   ratingCount: true,
   createdAt: true,

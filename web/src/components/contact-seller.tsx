@@ -3,20 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, apiFetch, authHeaders, getAccessToken } from "@/lib/api";
+import type { SellerContact } from "@/lib/types";
 
-// Phone stays hidden until the buyer asks for it — keeps casual scraping of
-// numbers off listing pages while still enabling the offline-deal contact.
-export default function ContactSeller({
-  listingId,
-  phone,
-  telegramUsername,
-}: {
-  listingId: string;
-  phone: string;
-  telegramUsername: string | null;
-}) {
+// Contact details never travel with the public listing payload — they're
+// fetched on demand and only for logged-in users, so numbers can't be
+// harvested straight off the listing pages.
+export default function ContactSeller({ listingId }: { listingId: string }) {
   const router = useRouter();
-  const [revealed, setRevealed] = useState(false);
+  const [contact, setContact] = useState<SellerContact | null>(null);
+  const [revealing, setRevealing] = useState(false);
   const [openingChat, setOpeningChat] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +39,30 @@ export default function ContactSeller({
     }
   }
 
+  async function revealContact() {
+    if (!getAccessToken()) {
+      router.push("/login");
+      return;
+    }
+    setRevealing(true);
+    setError(null);
+    try {
+      const data = await apiFetch<SellerContact>(
+        `/listings/${listingId}/contact`,
+        { headers: authHeaders() },
+      );
+      setContact(data);
+    } catch (err) {
+      setError(
+        err instanceof ApiError && err.message
+          ? err.message
+          : "Aloqa maʼlumotlarini olib boʻlmadi. Qayta urinib koʻring.",
+      );
+    } finally {
+      setRevealing(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <button
@@ -55,32 +74,34 @@ export default function ContactSeller({
         {openingChat ? "Ochilmoqda..." : "Saytda yozish"}
       </button>
 
-      {revealed ? (
-        <a
-          href={`tel:${phone}`}
-          className="rounded-full border border-brand px-4 py-2.5 text-center text-sm font-medium text-brand-dark hover:bg-brand-light"
-        >
-          {phone}
-        </a>
+      {contact ? (
+        <>
+          <a
+            href={`tel:${contact.phone}`}
+            className="rounded-full border border-brand px-4 py-2.5 text-center text-sm font-medium text-brand-dark hover:bg-brand-light"
+          >
+            {contact.phone}
+          </a>
+          {contact.telegramUsername && (
+            <a
+              href={`https://t.me/${contact.telegramUsername}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-full border border-border px-4 py-2.5 text-center text-sm font-medium text-ink hover:border-brand hover:text-brand-dark"
+            >
+              Telegramda yozish
+            </a>
+          )}
+        </>
       ) : (
         <button
           type="button"
-          onClick={() => setRevealed(true)}
-          className="rounded-full border border-brand px-4 py-2.5 text-sm font-medium text-brand-dark hover:bg-brand-light"
+          disabled={revealing}
+          onClick={revealContact}
+          className="rounded-full border border-brand px-4 py-2.5 text-sm font-medium text-brand-dark hover:bg-brand-light disabled:opacity-50"
         >
-          Raqamni koʻrsatish
+          {revealing ? "Olinmoqda..." : "Aloqa maʼlumotlarini koʻrsatish"}
         </button>
-      )}
-
-      {telegramUsername && (
-        <a
-          href={`https://t.me/${telegramUsername}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-full border border-border px-4 py-2.5 text-center text-sm font-medium text-ink hover:border-brand hover:text-brand-dark"
-        >
-          Telegramda yozish
-        </a>
       )}
 
       {error && <p className="text-xs text-red-700">{error}</p>}

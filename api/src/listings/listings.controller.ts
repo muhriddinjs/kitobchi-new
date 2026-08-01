@@ -13,6 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
@@ -57,6 +58,16 @@ export class ListingsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.listingsService.findOne(id);
+  }
+
+  // Contact details are behind auth so they can't be scraped anonymously,
+  // and tighter than the global limit so a single account can't walk the
+  // whole catalogue collecting numbers either.
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 20, ttl: 600_000 } })
+  @Get(':id/contact')
+  contact(@Param('id') id: string) {
+    return this.listingsService.contact(id);
   }
 
   @UseGuards(JwtAuthGuard)

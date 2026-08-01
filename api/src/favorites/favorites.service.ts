@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { LISTING_INCLUDE } from '../listings/listings.service';
+import { LISTING_INCLUDE } from '../common/prisma-selects';
 
 @Injectable()
 export class FavoritesService {
